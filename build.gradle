@@ -1,0 +1,104 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.91'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+// No repositories are declared on purpose. Create: Enchantment Industry, Create and
+// Create: Dragons Plus are all consumed from the local `libs` folder (compileOnly), so
+// this project needs no network access at all beyond what Gradle has already cached.
+// Build it with `--offline`.
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        client {
+            client()
+        }
+    }
+
+    // Required in the dev environment: without this the mod is listed but its @Mod
+    // entrypoint is never constructed, because ModDevGradle never learns which sources
+    // belong to which mod.
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    // Compile-only: the mod resolves CEI's classes reflectively at runtime, so nothing is
+    // hard-linked and the resulting jar carries no dependency on CEI at load time.
+    compileOnly files("libs/[机械动力：附魔工业] create-enchantment-industry-2.5.4b.jar")
+    compileOnly files("libs/[机械动力] create-1.21.1-6.0.10.jar")
+    compileOnly files("libs/[机械动力：龙+] CreateDragonsPlus-1.11.9.jar")
+
+    // Needed so `runClient` / `runServer` reproduce the target modpack: the mod itself
+    // resolves CEI reflectively, but the dev run has to have it on the classpath to load
+    // its data maps at all.
+    localRuntime files("libs/[机械动力：附魔工业] create-enchantment-industry-2.5.4b.jar")
+    localRuntime files("libs/[机械动力] create-1.21.1-6.0.10.jar")
+    localRuntime files("libs/[机械动力：龙+] CreateDragonsPlus-1.11.9.jar")
+
+    // Create bundles Registrate / Ponder / Flywheel as jar-in-jar, so they do not arrive
+    // transitively. They are only needed if this mod ever touches Create's own API; the
+    // current implementation stays on Minecraft + NeoForge types plus reflection, so they
+    // are intentionally not declared and the build needs no Maven metadata for them.
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// Keeps one jar per version outside build/, so "gradle clean" can never destroy a release.
+tasks.register('archiveJar', Copy) {
+    dependsOn tasks.named('jar')
+    from(tasks.named('jar').flatMap { it.archiveFile })
+    into(layout.projectDirectory.dir('libs-archive'))
+}
+tasks.named('build') { finalizedBy 'archiveJar' }

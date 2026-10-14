@@ -1,0 +1,36 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+logoFile = ""
+
+[[dependencies.${mod_id}]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neo_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+# CEI is what this mod patches, so it is required in practice -- but it is declared
+# OPTIONAL on purpose: the patch resolves CEI reflectively and degrades to a logged warning
+# when CEI is absent or has changed its API. Declaring it required would turn a missing or
+# mismatched CEI into a hard pre-load crash for the whole game instead of a no-op.
+[[dependencies.${mod_id}]]
+modId = "create_enchantment_industry"
+type = "optional"
+versionRange = "[2.5.0,)"
+ordering = "AFTER"
+side = "BOTH"

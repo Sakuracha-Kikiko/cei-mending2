@@ -1,0 +1,28 @@
+# Build / Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle-logs/
+
+# Development run directory (dev server world, logs, generated configs)
+run/
+
+# Test / debug leftovers
+*.log
+crash-reports/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.eclipse/
+bin/
+out/
+
+# Third-party mod jars used ONLY as compile-time references for the local offline build.
+# They are the property of their respective authors and are deliberately not redistributed;
+# see libs/README.md for how to supply them before building.
+libs/*.jar
+
+# Keep the release archive so a `gradle clean` cannot destroy a published version
+!libs-archive/
